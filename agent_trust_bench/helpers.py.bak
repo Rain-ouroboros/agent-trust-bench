@@ -4,71 +4,6 @@ Extracted from ouroboros/agent_trust.py — the normalization and redaction
 functions needed by boundaries.py.
 """
 
-import re
-import unicodedata
-from typing import Any
-
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
-
-_REDACTED_SECRET = "[REDACTED]"
-
-_HOMOGLYPH_TRANSLATION = {
-    "а": "a",  # Cyrillic a
-    "е": "e",  # Cyrillic e
-    "о": "o",  # Cyrillic o
-    "р": "p",  # Cyrillic r
-    "с": "c",  # Cyrillic s
-    "у": "y",  # Cyrillic u
-    "х": "x",  # Cyrillic kh
-    "Α": "A",  # Greek Alpha
-    "Ε": "E",  # Greek Epsilon
-    "Η": "H",  # Greek Eta
-    "Ι": "I",  # Greek Iota
-    "Κ": "K",  # Greek Kappa
-    "Μ": "M",  # Greek Mu
-    "Ν": "N",  # Greek Nu
-    "Ο": "O",  # Greek Omicron
-    "Ρ": "P",  # Greek Rho
-    "Τ": "T",  # Greek Tau
-    "Υ": "Y",  # Greek Upsilon
-    "Χ": "X",  # Greek Chi
-    "Ω": "W",  # Greek Omega
-    "в": "b",  # Cyrillic ve
-    "к": "k",  # Cyrillic ka
-    "м": "m",  # Cyrillic em
-    "н": "n",  # Cyrillic en
-    "т": "t",  # Cyrillic te
-}
-
-_SECRET_KEY_RE = re.compile(
-    r"(?i)(?:api[_-]?key|token|secret|password|passwd|auth|credential|private[_-]?key)",
-)
-
-_SECRET_TEXT_RE = re.compile(
-    r"(?:sk-[A-Za-z0-9]{20,}|xox[bprs]-[A-Za-z0-9-]{10,}|ghp_[A-Za-z0-9]{20,})",
-)
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-def _looks_like_secret_key(key: str) -> bool:
-    """Return True if *key* names a secret-shaped field."""
-    return bool(_SECRET_KEY_RE.search(key))
-
-
-def _redact_secret_text(text: str) -> str:
-    """Redact secret-looking patterns in free-form text."""
-    return _SECRET_TEXT_RE.sub(_REDACTED_SECRET, text)
-
-
-# ---------------------------------------------------------------------------
-# Public API
-# ---------------------------------------------------------------------------
-
 def normalize_agent_trust_text(value: Any) -> str:
     """Normalize adversarial text for advisory matching/redaction.
 
@@ -79,6 +14,8 @@ def normalize_agent_trust_text(value: Any) -> str:
     """
     text = unicodedata.normalize("NFKC", str(value)).translate(_HOMOGLYPH_TRANSLATION)
     return "".join(ch for ch in text if unicodedata.category(ch) != "Cf")
+
+
 
 
 def redact_agent_trust_packet(value: Any, *, parent_key: str | None = None) -> Any:
@@ -102,3 +39,6 @@ def redact_agent_trust_packet(value: Any, *, parent_key: str | None = None) -> A
             return _REDACTED_SECRET
         return _redact_secret_text(value)
     return value
+
+
+
